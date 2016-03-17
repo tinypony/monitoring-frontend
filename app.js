@@ -5,6 +5,8 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var _ = require('underscore');
 
+var APP_CONFIG = require('./config.js');
+
 var app = express();
 var expressWs = require('express-ws')(app); //app = express app 
 var SocketStore = require('./sockets/socket-store');
@@ -21,6 +23,7 @@ var store = new SocketStore;
 app.ws('/mon', function(ws ,req) {
   ws.on('message', function(msg) {
     var msgJson = JSON.parse(msg);
+	
     if(msgJson.type === 'subscription') {
       store.setSubscriptions(ws, msgJson.value);
     }
@@ -28,14 +31,15 @@ app.ws('/mon', function(ws ,req) {
 
   ws.on('close', function() {
     store.removeSocket(ws);
-  })
+  });
 
+  console.log('Adding socket');
   store.addSocket(ws);
 });
 
 var streamListener;
 
-require('./stream/stream-consumer')('10.12.4.60:2181', function(consumer) {
+require('./stream/stream-consumer')(APP_CONFIG.zookeeper_url, function(consumer) {
   streamListener = consumer;
 
   consumer.on('message', function(msg) {
